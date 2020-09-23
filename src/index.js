@@ -9,7 +9,7 @@ const constants = {
 class MemoryTransport {
     peers = []
 
-    constructor({ upgrader }) {
+    constructor({ upgrader, inPair, outPair }) {
         console.log('[MemoryTransport.construct]', upgrader)
 
         if (!upgrader) {
@@ -17,21 +17,22 @@ class MemoryTransport {
         }
 
         this._upgrader = upgrader
-        this._p = pair()
+        this._in = inPair
+        this._out = outPair
     }
 
     async dial(ma, options = {}) {
         console.log('[MemoryTransport.dial]', ma, ma.toString(), ma.protos())
 
         const maConn = {
-            conn: { ma } , // stream
+            conn: this._out,
             remoteAddr: ma,
             signal: options.signal,
             close: (error) => {
                 console.log('maCoon - close', error)
             },
-            sink: this._p.sink,
-            source: this._p.source,
+            sink: this._out.sink,
+            source: this._out.source,
             timeline: {
                 open: Date.now()
             }
@@ -74,14 +75,14 @@ class MemoryTransport {
             }
 
             const maConn = {
-                conn: { ma }, // stream
+                conn: this._in,
                 remoteAddr: ma,
                 signal: options.signal,
                 close: (error) => {
                     console.log('maCoon - close', error)
                 },
-                sink: this._p.source,
-                source: this._p.sink,
+                sink: this._in.source,
+                source: this._in.sink,
                 timeline: {
                     open: Date.now()
                 }
@@ -94,7 +95,7 @@ class MemoryTransport {
         }
 
         listener.getAddrs = () => {
-            return peerId ? listeningAddr.encapsulate(`/p2p/${peerId}`) : listeningAddr
+            return peerId ? [listeningAddr.encapsulate(`/p2p/${peerId}`)] : [listeningAddr]
         }
 
         listener.close = () => console.log('[MemoryTransport.listener]', 'event: close')
