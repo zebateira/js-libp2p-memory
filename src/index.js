@@ -17,12 +17,11 @@ class MemoryTransport {
         }
 
         this._upgrader = upgrader
+        this._p = pair()
     }
 
     async dial(ma, options = {}) {
         console.log('[MemoryTransport.dial]', ma, ma.toString(), ma.protos())
-
-        const p = pair()
 
         const maConn = {
             conn: { ma } , // stream
@@ -31,8 +30,11 @@ class MemoryTransport {
             close: (error) => {
                 console.log('maCoon - close', error)
             },
-            sink: p.sink,
-            source: p.source
+            sink: this._p.sink,
+            source: this._p.source,
+            timeline: {
+                open: Date.now()
+            }
         }
 
         this._maConn = maConn
@@ -46,10 +48,16 @@ class MemoryTransport {
         return conn
     }
 
-    async createListener(options = {}, handler) {
+    createListener(options = {}, handler) {
         const listener = new EventEmitter()
 
-        console.log('[MemoryTransport.createListener]')
+        // console.log('[MemoryTransport.createListener]', options, handler)
+
+        if (!handler && typeof options === 'function') {
+            handler = options
+            options = {}
+        }
+
 
         // setTimeout(() => listener.emit('listening'), 2000)
         // setTimeout(() => listener.emit('connection', {}), 3000)
@@ -62,8 +70,27 @@ class MemoryTransport {
 
             if (peerId) {
                 listeningAddr = ma.decapsulateCode(constants.CODE_P2P)
-                console.log('listen', peerId)
+                // console.log('listen', peerId)
             }
+
+            const maConn = {
+                conn: { ma }, // stream
+                remoteAddr: ma,
+                signal: options.signal,
+                close: (error) => {
+                    console.log('maCoon - close', error)
+                },
+                sink: this._p.source,
+                source: this._p.sink,
+                timeline: {
+                    open: Date.now()
+                }
+            }
+
+            const upgradedConnection = this._upgrader.upgradeInbound(maConn)
+            handler && handler(upgradedConnection)
+
+            return upgradedConnection
         }
 
         listener.getAddrs = () => {
@@ -71,8 +98,6 @@ class MemoryTransport {
         }
 
         listener.close = () => console.log('[MemoryTransport.listener]', 'event: close')
-
-        handler(this._upgrader.upgradeInbound(this._maConn))
 
         return listener
     }
