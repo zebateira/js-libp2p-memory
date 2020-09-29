@@ -2,8 +2,10 @@ const { expect } = require('aegir/utils/chai')
 const MemoryTransport = require('../src')
 
 const pipe = require('it-pipe')
-const multiaddr = require('multiaddr')
 const DuplexPair = require('it-pair/duplex')
+const { collect } = require('streaming-iterables')
+const multiaddr = require('multiaddr')
+
 
 describe.only('connection: valid localAddr and remoteAddr', () => {
     let d, t1, t2
@@ -14,10 +16,10 @@ describe.only('connection: valid localAddr and remoteAddr', () => {
     }
 
     beforeEach(() => {
-        const d = DuplexPair()
+        d = DuplexPair()
         
-        t1 = new MemoryTransport({ upgrader: mockUpgrader, inPair: d[0], outPair: d[1] })
-        t2 = new MemoryTransport({ upgrader: mockUpgrader, inPair: d[1], outPair: d[0] })
+        t1 = new MemoryTransport({ upgrader: mockUpgrader, input: d[0], output: d[1] })
+        t2 = new MemoryTransport({ upgrader: mockUpgrader, input: d[1], output: d[0] })
     })
 
     const ma = multiaddr('/memory/test1')
@@ -47,18 +49,17 @@ describe.only('connection: valid localAddr and remoteAddr', () => {
         // Close the listener
         await listener.close()
 
-        // TODO: needs localAddr
-        // expect(dialerConn.localAddr.toString())
-        //     .to.equal(listenerConn.remoteAddr.toString())
+        expect(dialerConn.localAddr.toString())
+            .to.equal(listenerConn.remoteAddr.toString())
 
-        // expect(dialerConn.remoteAddr.toString())
-        //     .to.equal(listenerConn.localAddr.toString())
+        expect(dialerConn.remoteAddr.toString())
+            .to.equal(listenerConn.localAddr.toString())
     })
 
     it('dial and move data around', async () => {
         // Create a listener with the handler
-        const listener = t1.createListener((conn) => {
-            pipe(conn, conn)
+        const listener = t1.createListener(async (conn) => {
+            return pipe(conn, conn)
         })
 
         // Listen on the multiaddr
@@ -72,7 +73,8 @@ describe.only('connection: valid localAddr and remoteAddr', () => {
             collect
         )
 
-        expect(values).to.be.eql([Buffer.from('hey')])
+        expect(values).to.be.eql(['hey'])
+        // expect(values).to.be.eql([Buffer.from('hey')])
         await listener.close()
     })
 
