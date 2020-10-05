@@ -7,7 +7,7 @@ const { collect } = require('streaming-iterables')
 const multiaddr = require('multiaddr')
 
 
-describe.only('connection: valid localAddr and remoteAddr', () => {
+describe('connection: valid localAddr and remoteAddr', () => {
     let d, t1, t2
 
     const mockUpgrader = {

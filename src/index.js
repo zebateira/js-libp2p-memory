@@ -1,6 +1,5 @@
 const EventEmitter = require('events')
 const withIs = require('class-is')
-const pair = require('it-pair')
 
 const toConnection = require('./to-connection')
 
@@ -51,12 +50,11 @@ class MemoryTransport {
             options = {}
         }
 
-        listener.emit('listening')
-        // setTimeout(() => listener.emit('connection', {}), 3000)
-
         let peerId, listeningAddr
+        
+        listener.emit('listening')
 
-        listener.listen = ma => {
+        listener.listen = async ma => {
             listeningAddr = ma
             peerId = ma.getPeerId()
 
@@ -70,9 +68,9 @@ class MemoryTransport {
                 output: this._output,
             })
 
-            const upgradedConnection = this._upgrader.upgradeInbound(this._listenConnection)
+            const upgradedConnection = await this._upgrader.upgradeInbound(this._listenConnection)
+
             handler(upgradedConnection)
-            // console.log('### listener', handler(upgradedConnection))
             listener.emit('connection', upgradedConnection)
 
             return new Promise(resolve => resolve())

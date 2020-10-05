@@ -14,7 +14,15 @@
     "multiaddr": "^8.0.0",
     "streaming-iterables": "^5.0.3"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "@nodeutils/defaults-deep": "^1.1.0",
+    "it-length-prefixed": "^3.1.0",
+    "libp2p": "^0.29.0",
+    "libp2p-mplex": "^0.10.0",
+    "libp2p-noise": "^2.0.1",
+    "libp2p-secio": "^0.13.1",
+    "peer-id": "^0.14.2"
+  },
   "scripts": {
     "test": "aegir test"
   },
