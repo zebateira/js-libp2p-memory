@@ -7,11 +7,13 @@ const constants = {
     CODE_P2P: 421
 }
 
+const memory = new EventEmitter()
+
 class MemoryTransport {
     peers = []
 
-    constructor({ upgrader, input, output }) {
-        // console.log('[MemoryTransport.construct]', upgrader)
+    constructor({ upgrader, input, output, address }) {
+        // console.log('[MemoryTransport.construct]', address, input, output)
 
         if (!upgrader) {
             throw new Error('An upgrader must be provided. See https://github.com/libp2p/interface-transport#upgrader.')
@@ -20,7 +22,20 @@ class MemoryTransport {
         this._upgrader = upgrader
         this._input = input
         this._output = output
+        this._address = address
+
+        memory.on(this._address, async (ma) => {
+            const upgradedConnection = await this._upgrader.upgradeInbound(toConnection({
+                address: ma,
+                input: this._input,
+                output: this._output,
+            }))
+
+            handler(upgradedConnection)
+            listener.emit('connection', upgradedConnection)
+        })
     }
+
 
     async dial(ma, options = {}) {
         // console.log('[MemoryTransport.dial]', ma, ma.toString(), ma.protos())
@@ -34,6 +49,8 @@ class MemoryTransport {
         // console.log('new outbound connection %s', this._dialConnection.remoteAddr)
 
         const conn = await this._upgrader.upgradeOutbound(this._dialConnection)
+
+        memory.emit(this._address, ma)
 
         // console.log('outbound connection %s upgraded', this._dialConnection.remoteAddr)
 
@@ -50,34 +67,24 @@ class MemoryTransport {
             options = {}
         }
 
-        let peerId, listeningAddr
+        let peerId, listeningAddress
         
-        listener.emit('listening')
-
-        listener.listen = async ma => {
-            listeningAddr = ma
+        listener.listen = ma => {
+            listeningAddress = ma
             peerId = ma.getPeerId()
-
+            
             if (peerId) {
-                listeningAddr = ma.decapsulateCode(constants.CODE_P2P)
+                listeningAddress = ma.decapsulateCode(constants.CODE_P2P)
             }
 
-            this._listenConnection = toConnection({
-                address: ma,
-                input: this._input,
-                output: this._output,
+            return new Promise(resolve => {
+                listener.emit('listening', listeningAddress.toString())
+                resolve()
             })
-
-            const upgradedConnection = await this._upgrader.upgradeInbound(this._listenConnection)
-
-            handler(upgradedConnection)
-            listener.emit('connection', upgradedConnection)
-
-            return new Promise(resolve => resolve())
         }
 
         listener.getAddrs = () => {
-            return peerId ? [listeningAddr.encapsulate(`/p2p/${peerId}`)] : [listeningAddr]
+            return peerId ? [listeningAddress.encapsulate(`/p2p/${peerId}`)] : [listeningAddress]
         }
 
         listener.close = () => {} // console.log('[MemoryTransport.listener]', 'event: close')

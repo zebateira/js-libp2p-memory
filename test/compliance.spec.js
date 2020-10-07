@@ -8,11 +8,10 @@ const YourTransport = require('../src')
 describe('compliance', () => {
     tests({
         setup(options) {
-            let transport = new YourTransport(options)
+            let transport = new YourTransport({ ...options, address: '/memory/test1' })
 
             const addrs = [
-                multiaddr('/memory/test1'),
-                multiaddr('/memory/test2')
+                multiaddr('/memory/test1')
             ]
 
             const connect = () => {}

@@ -11,11 +11,6 @@ const Memory = require('../../../src')
 
 class Node extends libp2p {
   constructor (_options) {
-    const upgrader = {
-      upgradeInbound: maConn => maConn,
-      upgradeOutbound: maConn => maConn
-    }
-
     const d = DuplexPair()
 
     const defaults = {
@@ -26,7 +21,7 @@ class Node extends libp2p {
       },
       config: {
         transport: {
-          'Memory': { upgrader, input: d[0], output: d[1] }
+          'Memory': { address: _options.addresses.listen[0], input: d[0], output: d[1] }
         }
       }
     }

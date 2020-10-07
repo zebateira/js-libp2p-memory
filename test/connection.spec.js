@@ -18,8 +18,8 @@ describe('connection: valid localAddr and remoteAddr', () => {
     beforeEach(() => {
         d = DuplexPair()
         
-        t1 = new MemoryTransport({ upgrader: mockUpgrader, input: d[0], output: d[1] })
-        t2 = new MemoryTransport({ upgrader: mockUpgrader, input: d[1], output: d[0] })
+        t1 = new MemoryTransport({ upgrader: mockUpgrader, input: d[0], output: d[1], address: '/memory/test1' })
+        t2 = new MemoryTransport({ upgrader: mockUpgrader, input: d[1], output: d[0], address: '/memory/test1' })
     })
 
     const ma = multiaddr('/memory/test1')
