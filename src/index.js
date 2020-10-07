@@ -7,12 +7,10 @@ const constants = {
     CODE_P2P: 421
 }
 
-const memory = new EventEmitter()
-
 class MemoryTransport {
     peers = []
 
-    constructor({ upgrader, input, output, address }) {
+    constructor({ upgrader, input, output, memory }) {
         // console.log('[MemoryTransport.construct]', address, input, output)
 
         if (!upgrader) {
@@ -22,18 +20,7 @@ class MemoryTransport {
         this._upgrader = upgrader
         this._input = input
         this._output = output
-        this._address = address
-
-        memory.on(this._address, async (ma) => {
-            const upgradedConnection = await this._upgrader.upgradeInbound(toConnection({
-                address: ma,
-                input: this._input,
-                output: this._output,
-            }))
-
-            handler(upgradedConnection)
-            listener.emit('connection', upgradedConnection)
-        })
+        this._memory = memory
     }
 
 
@@ -50,7 +37,7 @@ class MemoryTransport {
 
         const conn = await this._upgrader.upgradeOutbound(this._dialConnection)
 
-        memory.emit(this._address, ma)
+        this._memory.emit(ma)
 
         // console.log('outbound connection %s upgraded', this._dialConnection.remoteAddr)
 
@@ -71,6 +58,18 @@ class MemoryTransport {
         
         listener.listen = ma => {
             listeningAddress = ma
+
+            this._memory.on(listeningAddress, async () => {
+                const upgradedConnection = await this._upgrader.upgradeInbound(toConnection({
+                    address: listeningAddress,
+                    input: this._input,
+                    output: this._output,
+                }))
+
+                handler(upgradedConnection)
+                listener.emit('connection', upgradedConnection)
+            })
+
             peerId = ma.getPeerId()
             
             if (peerId) {

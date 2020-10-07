@@ -1,6 +1,7 @@
 const { expect } = require('aegir/utils/chai')
 const MemoryTransport = require('../src')
 
+const EventEmitter = require('events')
 const pipe = require('it-pipe')
 const DuplexPair = require('it-pair/duplex')
 const { collect } = require('streaming-iterables')
@@ -16,10 +17,11 @@ describe('connection: valid localAddr and remoteAddr', () => {
     }
 
     beforeEach(() => {
+        const memory = new EventEmitter()
         d = DuplexPair()
         
-        t1 = new MemoryTransport({ upgrader: mockUpgrader, input: d[0], output: d[1], address: '/memory/test1' })
-        t2 = new MemoryTransport({ upgrader: mockUpgrader, input: d[1], output: d[0], address: '/memory/test1' })
+        t1 = new MemoryTransport({ upgrader: mockUpgrader, input: d[0], output: d[1], memory, address: '/memory/test1' })
+        t2 = new MemoryTransport({ upgrader: mockUpgrader, input: d[1], output: d[0], memory, address: '/memory/test1' })
     })
 
     const ma = multiaddr('/memory/test1')

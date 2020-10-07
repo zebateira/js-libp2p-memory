@@ -1,5 +1,7 @@
 'use strict'
 
+const EventEmitter = require('events')
+
 const DuplexPair = require('it-pair/duplex')
 const mplex = require('libp2p-mplex')
 const SECIO = require('libp2p-secio')
@@ -8,6 +10,8 @@ const defaultsDeep = require('@nodeutils/defaults-deep')
 const libp2p = require('libp2p')
 
 const Memory = require('../../../src')
+
+const memory = new EventEmitter()
 
 class Node extends libp2p {
   constructor (_options) {
@@ -21,7 +25,7 @@ class Node extends libp2p {
       },
       config: {
         transport: {
-          'Memory': { address: _options.addresses.listen[0], input: d[0], output: d[1] }
+          'Memory': { memory, input: d[0], output: d[1] }
         }
       }
     }
