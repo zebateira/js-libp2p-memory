@@ -3,6 +3,7 @@
 
 const multiaddr = require('multiaddr')
 const PeerId = require('peer-id')
+const DuplexPair = require('it-pair/duplex')
 const Node = require('./libp2p-bundle.js')
 const { writeToStream, readFromStream } = require('./stream')
 
@@ -11,11 +12,19 @@ async function run() {
     PeerId.createFromJSON(require('./peer-id-dialer')),
     PeerId.createFromJSON(require('./peer-id-listener'))
   ])
+
+  const duplex = DuplexPair()
+  
   // Create a new libp2p node with the given multi-address
   const nodeListener = new Node({
     peerId: idListener,
     addresses: {
-      listen: ['/memory/test1']
+      listen: ['/memory/test1'],
+    },
+    config: {
+      transport: {
+        'Memory': { duplex }
+      }
     }
   })
 
@@ -47,6 +56,11 @@ async function run() {
     peerId: idDialer,
     addresses: {
       listen: ['/memory/test1']
+    },
+    config: {
+      transport: {
+        'Memory': { duplex }
+      }
     }
   })
 

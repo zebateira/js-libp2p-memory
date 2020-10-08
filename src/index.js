@@ -10,7 +10,7 @@ const constants = {
 class MemoryTransport {
     peers = []
 
-    constructor({ upgrader, input, output, memory }) {
+    constructor({ upgrader, duplex, memory }) {
         // console.log('[MemoryTransport.construct]', address, input, output)
 
         if (!upgrader) {
@@ -18,14 +18,14 @@ class MemoryTransport {
         }
 
         this._upgrader = upgrader
-        this._input = input
-        this._output = output
+        this._input = duplex[0]
+        this._output = duplex[1]
         this._memory = memory
     }
 
-
     async dial(ma, options = {}) {
         // console.log('[MemoryTransport.dial]', ma, ma.toString(), ma.protos())
+        this._memory.emit(ma)
 
         this._dialConnection = toConnection({
             address: ma,
@@ -37,7 +37,6 @@ class MemoryTransport {
 
         const conn = await this._upgrader.upgradeOutbound(this._dialConnection)
 
-        this._memory.emit(ma)
 
         // console.log('outbound connection %s upgraded', this._dialConnection.remoteAddr)
 
@@ -62,8 +61,8 @@ class MemoryTransport {
             this._memory.on(listeningAddress, async () => {
                 const upgradedConnection = await this._upgrader.upgradeInbound(toConnection({
                     address: listeningAddress,
-                    input: this._input,
-                    output: this._output,
+                    input: this._output,
+                    output: this._input,
                 }))
 
                 handler(upgradedConnection)

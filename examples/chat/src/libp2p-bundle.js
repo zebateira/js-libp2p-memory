@@ -2,7 +2,6 @@
 
 const EventEmitter = require('events')
 
-const DuplexPair = require('it-pair/duplex')
 const mplex = require('libp2p-mplex')
 const SECIO = require('libp2p-secio')
 const { NOISE } = require('libp2p-noise')
@@ -15,8 +14,6 @@ const memory = new EventEmitter()
 
 class Node extends libp2p {
   constructor (_options) {
-    const d = DuplexPair()
-
     const defaults = {
       modules: {
         transport: [Memory],
@@ -25,7 +22,7 @@ class Node extends libp2p {
       },
       config: {
         transport: {
-          'Memory': { memory, input: d[0], output: d[1] }
+          'Memory': { memory }
         }
       }
     }

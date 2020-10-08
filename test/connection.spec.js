@@ -9,7 +9,7 @@ const multiaddr = require('multiaddr')
 
 
 describe('connection: valid localAddr and remoteAddr', () => {
-    let d, t1, t2
+    let duplex, t1, t2
 
     const mockUpgrader = {
         upgradeInbound: maConn => maConn,
@@ -18,10 +18,10 @@ describe('connection: valid localAddr and remoteAddr', () => {
 
     beforeEach(() => {
         const memory = new EventEmitter()
-        d = DuplexPair()
-        
-        t1 = new MemoryTransport({ upgrader: mockUpgrader, input: d[0], output: d[1], memory, address: '/memory/test1' })
-        t2 = new MemoryTransport({ upgrader: mockUpgrader, input: d[1], output: d[0], memory, address: '/memory/test1' })
+        duplex = DuplexPair()
+
+        t1 = new MemoryTransport({ upgrader: mockUpgrader, duplex, memory })
+        t2 = new MemoryTransport({ upgrader: mockUpgrader, duplex, memory })
     })
 
     const ma = multiaddr('/memory/test1')
@@ -76,8 +76,7 @@ describe('connection: valid localAddr and remoteAddr', () => {
         )
 
         expect(values).to.be.eql(['hey'])
-        // expect(values).to.be.eql([Buffer.from('hey')])
+
         await listener.close()
     })
-
 })
