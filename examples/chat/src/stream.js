@@ -18,10 +18,12 @@ function readFromStream(stream, handler) {
     stream.source,
     lp.encode(),
     async function (source) {
+      let message = ''
       // For each chunk of data
-      for await (const msg of source) {
-        handler(msg)
+      for await (const chunk of source) {
+        message += chunk
       }
+      handler(message)
     }
   )
 }

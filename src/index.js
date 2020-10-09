@@ -28,7 +28,7 @@ class MemoryTransport {
 
     async dial(ma, options = {}) {
         // console.log('[MemoryTransport.dial]', ma, ma.toString(), ma.protos())
-        this._memory.emit(ma.decapsulate('/p2p').toString()) // TODO: remove this once libp2p peer id is provided
+        this._memory.emit(ma.decapsulate('/p2p').toString(), ma) // TODO: remove this once libp2p peer id is provided
 
         this._dialConnection = toConnection({
             localAddr: this.listeningAddress,
@@ -64,9 +64,10 @@ class MemoryTransport {
 
             console.log('listen ma', ma)
 
-            this._memory.on(this.listeningAddress.toString(), async () => {
+            this._memory.on(this.listeningAddress.toString(), async (dialCon) => {
                 const upgradedConnection = await this._upgrader.upgradeInbound(toConnection({
                     localAddr: this.listeningAddress,
+                    remoteAddr: dialCon,
                     duplex: this._duplex
                 }))
 
