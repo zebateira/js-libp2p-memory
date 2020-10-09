@@ -23,7 +23,7 @@ async function run() {
     },
     config: {
       transport: {
-        'Memory': { duplex }
+        'Memory': { duplex: [duplex[0]] }
       }
     }
   })
@@ -55,11 +55,11 @@ async function run() {
   const nodeDialer = new Node({
     peerId: idDialer,
     addresses: {
-      listen: ['/memory/test1']
+      // listen: ['/memory/test1']
     },
     config: {
       transport: {
-        'Memory': { duplex }
+        'Memory': { duplex: [duplex[1]] }
       }
     }
   })
