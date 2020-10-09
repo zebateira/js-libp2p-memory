@@ -18,7 +18,7 @@ class Node extends libp2p {
       modules: {
         transport: [Memory],
         streamMuxer: [ mplex ],
-        connEncryption: [ NOISE, SECIO ]
+        connEncryption: [ SECIO ]
       },
       config: {
         transport: {
