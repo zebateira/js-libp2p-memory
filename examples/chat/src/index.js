@@ -36,9 +36,9 @@ async function run() {
   // Handle messages for the protocol
   await nodeListener.handle('/chat/1.0.0', async ({ stream }) => {
     // Send stdin to the stream
-    writeToStream(stream, 'pong')
+    writeToStream(stream, 'ping')
     // Read the stream and output to console
-    readFromStream(stream, () => console.log('> listener: ' + msg.toString().replace('\n', '')))
+    readFromStream(stream, (msg) => console.log('> listener: ' + msg.toString().replace('\n', '')))
   })
 
   // Start listening
@@ -80,9 +80,9 @@ async function run() {
   console.log('Dialer dialed to listener on protocol: /chat/1.0.0')
 
   // Send stdin to the stream
-  writeToStream(stream, 'ping')
+  writeToStream(stream, 'pong')
   // Read the stream and output to console
-  readFromStream(stream, () => console.log('> dialer: ' + msg.toString().replace('\n', '')))
+  readFromStream(stream, (msg) => console.log('> dialer: ' + msg.toString().replace('\n', '')))
 }
 
 run()

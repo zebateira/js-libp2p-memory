@@ -70,7 +70,7 @@ class MemoryTransport {
                     duplex: this._duplex
                 }))
 
-                handler(upgradedConnection)
+                handler && handler(upgradedConnection)
                 listener.emit('connection', upgradedConnection)
             })
 
