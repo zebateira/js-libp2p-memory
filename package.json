@@ -1,13 +1,31 @@
 {
-  "name": "js-libp2p-memory",
-  "version": "1.0.0",
+  "name": "libp2p-memory",
+  "version": "0.1.0",
   "description": "libp2p memory transport",
-  "main": "index.js",
-  "directories": {
-    "test": "test"
+  "main": "src/index.js",
+  "files": [
+    "src",
+    "dist"
+  ],
+  "scripts": {
+    "lint": "aegir lint",
+    "release": "aegir release",
+    "build": "aegir build",
+    "test": "aegir test",
+    "test:node": "aegir test --target node",
+    "test:browser": "aegir test --target browser"
+  },
+  "pre-push": [
+    "lint"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=12.0.0",
+    "npm": ">=6.0.0"
   },
   "dependencies": {
     "aegir": "^26.0.0",
+    "debug": "^4.3.1",
     "it-pair": "^1.0.0",
     "it-pipe": "^1.1.0",
     "libp2p-interfaces": "^0.5.1",
@@ -22,10 +40,5 @@
     "libp2p-noise": "^2.0.1",
     "libp2p-secio": "^0.13.1",
     "peer-id": "^0.14.2"
-  },
-  "scripts": {
-    "test": "aegir test"
-  },
-  "author": "",
-  "license": "ISC"
+  }
 }

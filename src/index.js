@@ -1,113 +1,116 @@
+'use strict'
+
 const EventEmitter = require('events')
 const withIs = require('class-is')
+
+const debug = require('debug')('libp2p-memory')
 
 const toConnection = require('./to-connection')
 
 const constants = {
-    CODE_P2P: 421
+  CODE_P2P: 421
 }
 
 class MemoryTransport {
-    peers = []
+  // TODO: libp2p provides itself to the transport: https://github.com/libp2p/js-libp2p/blob/master/src/transport-manager.js#L45
+  // change this to receive libp2p and use peer id to listen on memory event as:
+  // /memory/test1/p2p/QmcrQZ6RJdpYuGvZqD5QEHAv6qX4BrQLJLQPQUrTrzdcgm
+  // current: /memory/test1
+  constructor ({ upgrader, duplex, memory }) {
+    // console.log('[MemoryTransport.construct]', address, input, output)
 
-    // TODO: libp2p provides itself to the transport: https://github.com/libp2p/js-libp2p/blob/master/src/transport-manager.js#L45
-    // change this to receive libp2p and use peer id to listen on memory event as:
-    // /memory/test1/p2p/QmcrQZ6RJdpYuGvZqD5QEHAv6qX4BrQLJLQPQUrTrzdcgm
-    // current: /memory/test1
-    constructor({ upgrader, duplex, memory }) {
-        // console.log('[MemoryTransport.construct]', address, input, output)
-
-        if (!upgrader) {
-            throw new Error('An upgrader must be provided. See https://github.com/libp2p/interface-transport#upgrader.')
-        }
-
-        this._upgrader = upgrader
-        this._duplex = duplex[0]
-        this._memory = memory
+    if (!upgrader) {
+      throw new Error('An upgrader must be provided. See https://github.com/libp2p/interface-transport#upgrader.')
     }
 
-    async dial(ma, options = {}) {
-        // console.log('[MemoryTransport.dial]', ma, ma.toString(), ma.protos())
-        this._memory.emit(ma.decapsulate('/p2p').toString(), ma) // TODO: remove this once libp2p peer id is provided
+    this._upgrader = upgrader
+    this._duplex = duplex[0]
+    this._memory = memory
+  }
 
-        this._dialConnection = toConnection({
-            localAddr: this.listeningAddress,
-            remoteAddr: ma,
-            duplex: this._duplex
-        })
-        
-        // console.log('new outbound connection %s', this._dialConnection)
+  async dial (ma, options = {}) {
+    // console.log('[MemoryTransport.dial]', ma, ma.toString(), ma.protos())
+    this._memory.emit(ma.decapsulate('/p2p').toString(), ma) // TODO: remove this once libp2p peer id is provided
 
-        const conn = await this._upgrader.upgradeOutbound(this._dialConnection)
+    this._dialConnection = toConnection({
+      localAddr: this.listeningAddress,
+      remoteAddr: ma,
+      duplex: this._duplex
+    })
 
-        // console.log('outbound connection %s upgraded', this._dialConnection.remoteAddr)
+    // console.log('new outbound connection %s', this._dialConnection)
 
-        return conn
+    const conn = await this._upgrader.upgradeOutbound(this._dialConnection)
+
+    // console.log('outbound connection %s upgraded', this._dialConnection.remoteAddr)
+
+    return conn
+  }
+
+  createListener (options = {}, handler) {
+    const listener = new EventEmitter()
+
+    // console.log('[MemoryTransport.createListener]', options, handler)
+
+    if (!handler && typeof options === 'function') {
+      handler = options
+      options = {}
     }
 
-    createListener(options = {}, handler) {
-        const listener = new EventEmitter()
+    let peerId
 
-        // console.log('[MemoryTransport.createListener]', options, handler)
+    debug('create listener', handler)
 
-        if (!handler && typeof options === 'function') {
-            handler = options
-            options = {}
-        }
+    listener.listen = ma => {
+      this.listeningAddress = ma
 
-        let peerId
+      debug('listen ma', ma)
 
-        console.log('create listener', handler)
-        
-        listener.listen = ma => {
-            this.listeningAddress = ma
+      this._memory.on(this.listeningAddress.toString(), async (dialCon) => {
+        const upgradedConnection = await this._upgrader.upgradeInbound(toConnection({
+          localAddr: this.listeningAddress,
+          remoteAddr: dialCon,
+          duplex: this._duplex
+        }))
 
-            console.log('listen ma', ma)
+        handler && handler(upgradedConnection)
+        listener.emit('connection', upgradedConnection)
+      })
 
-            this._memory.on(this.listeningAddress.toString(), async (dialCon) => {
-                const upgradedConnection = await this._upgrader.upgradeInbound(toConnection({
-                    localAddr: this.listeningAddress,
-                    remoteAddr: dialCon,
-                    duplex: this._duplex
-                }))
+      peerId = ma.getPeerId()
 
-                handler && handler(upgradedConnection)
-                listener.emit('connection', upgradedConnection)
-            })
+      if (peerId) {
+        this.listeningAddress = ma.decapsulateCode(constants.CODE_P2P)
+      }
 
-            peerId = ma.getPeerId()
-            
-            if (peerId) {
-                this.listeningAddress = ma.decapsulateCode(constants.CODE_P2P)
-            }
-
-            return new Promise(resolve => {
-                listener.emit('listening', this.listeningAddress.toString())
-                resolve()
-            })
-        }
-
-        listener.getAddrs = () => {
-            return peerId ? [this.listeningAddress.encapsulate(`/p2p/${peerId}`)] : [this.listeningAddress]
-        }
-
-        listener.close = () => {} // console.log('[MemoryTransport.listener]', 'event: close')
-
-        return listener
+      return new Promise(resolve => {
+        listener.emit('listening', this.listeningAddress.toString())
+        resolve()
+      })
     }
 
-    /**
-    * Takes a list of `Multiaddr`s and returns only valid memory addresses
-    * @param {Multiaddr[]} multiaddrs
-    * @returns {Multiaddr[]} Valid Memory multiaddrs
-    */
-    filter(multiaddrs) {
-        multiaddrs = Array.isArray(multiaddrs) ? multiaddrs : [multiaddrs]
-
-        return multiaddrs.filter(ma => ma.protoNames().includes('memory'))
+    listener.getAddrs = () => {
+      return peerId ? [this.listeningAddress.encapsulate(`/p2p/${peerId}`)] : [this.listeningAddress]
     }
+
+    listener.close = () => {} // console.log('[MemoryTransport.listener]', 'event: close')
+
+    return listener
+  }
+
+  /**
+  * Takes a list of `Multiaddr`s and returns only valid memory addresses
+  * @param {Multiaddr[]} multiaddrs
+  * @returns {Multiaddr[]} Valid Memory multiaddrs
+  */
+  filter (multiaddrs) {
+    multiaddrs = Array.isArray(multiaddrs) ? multiaddrs : [multiaddrs]
+
+    return multiaddrs.filter(ma => ma.protoNames().includes('memory'))
+  }
 }
 
-const EnhancedMemoryTransport = withIs(MemoryTransport, { className: 'Memory', symbolName: '@libp2p/js-libp2p-memory/Memory' })
-
-module.exports = EnhancedMemoryTransport
+module.exports = withIs(MemoryTransport, {
+  className: 'Memory',
+  symbolName: '@libp2p/js-libp2p-memory/Memory'
+})
